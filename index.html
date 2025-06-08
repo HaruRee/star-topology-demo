@@ -17,54 +17,78 @@
                 </p>        </header>
 
         <div class="main-content">
-            <div class="network-area">
-                <!-- Central Hub -->
+            <div class="network-area">                <!-- Central Hub -->
                 <div class="hub" id="hub">
                     <div class="hub-icon">🌟</div>
                     <div class="hub-label">Central Hub</div>
                     <div class="hub-status" id="hubStatus">Ready</div>
+                    <div class="hub-health" id="hubHealth">100%</div>
+                    <div class="power-button hub-power" id="hubPowerButton" title="Click to simulate hub failure">⚡</div>
                 </div>
 
-                <!-- Network Devices - All PCs -->
-                <div class="device device-1" id="device1" data-device="1">
+                <!-- Network Devices - All PCs -->                <div class="device device-1" id="device1" data-device="1" data-mac="AA:BB:CC:DD:EE:01">
                     <div class="device-icon">💻</div>
                     <div class="device-label">PC 1</div>
                     <div class="device-status">Online</div>
+                    <div class="device-mac">AA:BB:CC:DD:EE:01</div>
+                    <div class="bandwidth-indicator" id="bandwidth1">
+                        <div class="bandwidth-bar" id="bandwidthBar1"></div>
+                    </div>
                     <div class="power-button" title="Click to turn on/off">⚡</div>
                 </div>
 
-                <div class="device device-2" id="device2" data-device="2">
+                <div class="device device-2" id="device2" data-device="2" data-mac="AA:BB:CC:DD:EE:02">
                     <div class="device-icon">🖥️</div>
                     <div class="device-label">PC 2</div>
                     <div class="device-status">Online</div>
+                    <div class="device-mac">AA:BB:CC:DD:EE:02</div>
+                    <div class="bandwidth-indicator" id="bandwidth2">
+                        <div class="bandwidth-bar" id="bandwidthBar2"></div>
+                    </div>
                     <div class="power-button" title="Click to turn on/off">⚡</div>
                 </div>
 
-                <div class="device device-3" id="device3" data-device="3">
+                <div class="device device-3" id="device3" data-device="3" data-mac="AA:BB:CC:DD:EE:03">
                     <div class="device-icon">💻</div>
                     <div class="device-label">PC 3</div>
                     <div class="device-status">Online</div>
+                    <div class="device-mac">AA:BB:CC:DD:EE:03</div>
+                    <div class="bandwidth-indicator" id="bandwidth3">
+                        <div class="bandwidth-bar" id="bandwidthBar3"></div>
+                    </div>
                     <div class="power-button" title="Click to turn on/off">⚡</div>
                 </div>
 
-                <div class="device device-4" id="device4" data-device="4">
+                <div class="device device-4" id="device4" data-device="4" data-mac="AA:BB:CC:DD:EE:04">
                     <div class="device-icon">🖥️</div>
                     <div class="device-label">PC 4</div>
                     <div class="device-status">Online</div>
+                    <div class="device-mac">AA:BB:CC:DD:EE:04</div>
+                    <div class="bandwidth-indicator" id="bandwidth4">
+                        <div class="bandwidth-bar" id="bandwidthBar4"></div>
+                    </div>
                     <div class="power-button" title="Click to turn on/off">⚡</div>
                 </div>
 
-                <div class="device device-5" id="device5" data-device="5">
+                <div class="device device-5" id="device5" data-device="5" data-mac="AA:BB:CC:DD:EE:05">
                     <div class="device-icon">💻</div>
                     <div class="device-label">PC 5</div>
                     <div class="device-status">Online</div>
+                    <div class="device-mac">AA:BB:CC:DD:EE:05</div>
+                    <div class="bandwidth-indicator" id="bandwidth5">
+                        <div class="bandwidth-bar" id="bandwidthBar5"></div>
+                    </div>
                     <div class="power-button" title="Click to turn on/off">⚡</div>
                 </div>
 
-                <div class="device device-6" id="device6" data-device="6">
+                <div class="device device-6" id="device6" data-device="6" data-mac="AA:BB:CC:DD:EE:06">
                     <div class="device-icon">🖥️</div>
                     <div class="device-label">PC 6</div>
                     <div class="device-status">Online</div>
+                    <div class="device-mac">AA:BB:CC:DD:EE:06</div>
+                    <div class="bandwidth-indicator" id="bandwidth6">
+                        <div class="bandwidth-bar" id="bandwidthBar6"></div>
+                    </div>
                     <div class="power-button" title="Click to turn on/off">⚡</div>
                 </div>
 
@@ -83,11 +107,18 @@
                     </h3>
                     <div class="instructions">
                         <p>Click any PC to send data. Use power buttons to control device state.</p>
-                    </div>
-                    <div class="buttons">
+                    </div>                    <div class="buttons">
                         <button id="simulateTraffic" class="btn btn-primary">
                             <span class="btn-icon">🚀</span>
                             Simulate Network Traffic
+                        </button>
+                        <button id="simulateHubFailure" class="btn btn-warning">
+                            <span class="btn-icon">⚠️</span>
+                            Simulate Hub Failure
+                        </button>
+                        <button id="simulateCongestion" class="btn btn-danger">
+                            <span class="btn-icon">🚫</span>
+                            Create Network Congestion
                         </button>
                         <button id="resetNetwork" class="btn btn-secondary">
                             <span class="btn-icon">🔄</span>
@@ -104,13 +135,29 @@
                             <span id="speedValue" class="speed-indicator">Normal</span>
                         </div>
                     </div>
-                </div>
-
-                <div class="log-panel">
+                </div>                <div class="log-panel">
                     <h3>
                         <span class="panel-icon">📊</span>
                         Network Activity Log
                     </h3>
+                    <div class="network-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Hub Status:</span>
+                            <span class="metric-value" id="hubStatusMetric">Active</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Network Latency:</span>
+                            <span class="metric-value" id="networkLatency">0ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Collision Rate:</span>
+                            <span class="metric-value" id="collisionRate">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Total Bandwidth:</span>
+                            <span class="metric-value" id="totalBandwidth">0%</span>
+                        </div>
+                    </div>
                     <div class="log-content" id="logContent">
                         <div class="log-entry log-success">
                             <span class="log-time">00:00:00</span>

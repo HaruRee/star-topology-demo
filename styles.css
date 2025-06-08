@@ -113,6 +113,65 @@ header {
     margin-top: 2px;
 }
 
+.hub-health {
+    font-size: 0.6rem;
+    color: #e0f0ff;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.hub.failed {
+    background-color: #e74c3c;
+    border-color: #c0392b;
+    animation: hub-failure 2s ease-in-out infinite;
+}
+
+.hub.failed .hub-icon {
+    animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes hub-failure {
+    0%, 100% { 
+        box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+    }
+    50% { 
+        box-shadow: 0 6px 16px rgba(231, 76, 60, 0.7);
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+.hub-power {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 15;
+}
+
+.hub-power:hover {
+    background-color: #e74c3c;
+    color: white;
+    border-color: #c0392b;
+    transform: scale(1.3);
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
+}
+
 /* Device Base Styles */
 .device {
     position: absolute;
@@ -205,6 +264,14 @@ header {
 
 .device:hover:not(.sending):not(.receiving) .device-status {
     color: rgba(255, 255, 255, 1);
+}
+
+.device-mac {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 1px;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
 }
 
 .power-button {
@@ -355,10 +422,23 @@ header {
     stroke-dasharray: 5,5;
 }
 
+.connection-line.congested {
+    stroke: #f39c12;
+    stroke-width: 3;
+    opacity: 1;
+    stroke-dasharray: 3,3;
+    animation: congestion-flow 1s linear infinite;
+}
+
 @keyframes pulse-line {
     0% { stroke-width: 4; }
     50% { stroke-width: 6; }
     100% { stroke-width: 4; }
+}
+
+@keyframes congestion-flow {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 6; }
 }
 
 /* Data Packets */
@@ -487,6 +567,24 @@ header {
     font-size: 0.8rem;
 }
 
+.btn-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #e67e22;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
 /* Speed Control */
 .speed-control {
     margin-top: 15px;
@@ -593,69 +691,101 @@ header {
     gap: 10px;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .main-content {
-        grid-template-columns: 1fr;
-    }
-    
-    .network-area {
-        min-height: 550px;
-        padding: 60px;
-    }
+/* Network Metrics Panel */
+.network-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
 }
 
+.metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.metric-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.metric-value.status-active {
+    color: #2ecc71;
+}
+
+.metric-value.status-failed {
+    color: #e74c3c;
+}
+
+.metric-value.status-warning {
+    color: #f39c12;
+}
+
+/* Enhanced Button Styles */
+.btn-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #e67e22;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+/* Latency Simulation Effects */
+.data-packet.slow {
+    animation-duration: 3s !important;
+}
+
+.data-packet.fast {
+    animation-duration: 0.5s !important;
+}
+
+/* Enhanced Mobile Responsiveness for New Elements */
 @media (max-width: 768px) {
-    .container {
-        padding: 10px;
+    .network-metrics {
+        grid-template-columns: 1fr;
+        gap: 8px;
     }
     
-    .header-content h1 {
-        font-size: 2rem;
+    .metric {
+        flex-direction: row;
+        justify-content: space-between;
     }
     
-    .network-area {
-        padding: 40px 20px;
-        min-height: 450px;
+    .bandwidth-indicator {
+        width: 50px;
+        bottom: -10px;
     }
     
-    .hub {
-        width: 80px;
-        height: 80px;
+    .device-mac {
+        font-size: 0.45rem;
     }
     
-    .device {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .device-icon {
-        font-size: 1.2rem;
-    }
-    
-    .device-label {
-        font-size: 0.6rem;
-    }
-    
-    /* Adjusted mobile positioning */
-    .device-1 {
-        top: 40px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-    
-    .device-2, .device-3 {
-        right: 30px;
-    }
-    
-    .device-5, .device-6 {
-        left: 30px;
-    }
-    
-    .device-4 {
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
+    .hub-health {
+        font-size: 0.5rem;
     }
 }
 
@@ -846,13 +976,151 @@ header {
     }
 }
 
-
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+/* Collision Detection Visual Effects */
+.data-packet.collision {
+    background-color: #e74c3c;
+    border-color: #c0392b;
+    animation: collision-effect 0.3s ease-in-out;
 }
 
-.fade-in {
-    animation: fadeIn 0.3s ease-in;
+@keyframes collision-effect {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); background-color: #f39c12; }
+    100% { transform: scale(1); }
+}
+
+/* Bandwidth Indicators */
+.bandwidth-indicator {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.bandwidth-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Network Congestion Styles */
+.device.congested {
+    background-color: #f39c12;
+    border-color: #e67e22;
+    animation: congestion-pulse 1s ease-in-out infinite;
+}
+
+@keyframes congestion-pulse {
+    0%, 100% { 
+        box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+    }
+    50% { 
+        box-shadow: 0 6px 16px rgba(243, 156, 18, 0.7);
+        transform: scale(1.02);
+    }
+}
+
+/* Network Metrics Panel */
+.network-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.metric-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.metric-value.status-active {
+    color: #2ecc71;
+}
+
+.metric-value.status-failed {
+    color: #e74c3c;
+}
+
+.metric-value.status-warning {
+    color: #f39c12;
+}
+
+/* Enhanced Button Styles */
+.btn-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #e67e22;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+/* Latency Simulation Effects */
+.data-packet.slow {
+    animation-duration: 3s !important;
+}
+
+.data-packet.fast {
+    animation-duration: 0.5s !important;
+}
+
+/* Enhanced Mobile Responsiveness for New Elements */
+@media (max-width: 768px) {
+    .network-metrics {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .metric {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    .bandwidth-indicator {
+        width: 50px;
+        bottom: -10px;
+    }
+    
+    .device-mac {
+        font-size: 0.45rem;
+    }
+    
+    .hub-health {
+        font-size: 0.5rem;
+    }
 }

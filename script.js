@@ -8,8 +8,7 @@
  * @created 2025
  */
 
-class StarTopologySimulation {
-    /**
+class StarTopologySimulation {    /**
      * Initialize the Star Topology Simulation
      * Sets up all network components, event handlers, and initial state
      */
@@ -22,6 +21,21 @@ class StarTopologySimulation {
         this.animationSpeed = 3;              // Animation speed (1-5)
         this.activeConnections = new Set();   // Active data transmission connections
         this.deviceStates = {};               // Track online/offline state for each device
+        this.hubState = 'active';             // Hub state: active, failed, recovering
+        this.networkCongested = false;        // Network congestion state
+        this.hubHealth = 100;                 // Hub health percentage (0-100)
+        
+        // Performance metrics
+        this.metrics = {
+            latency: 0,                       // Network latency in ms
+            collisionRate: 0,                 // Collision percentage
+            totalBandwidth: 0,                // Total bandwidth usage
+            packetsCollided: 0,               // Number of packet collisions
+            avgLatency: []                    // Moving average for latency
+        };
+        
+        // Bandwidth tracking per device
+        this.bandwidthUsage = {};
         
         // Statistics tracking
         this.stats = {
@@ -32,21 +46,22 @@ class StarTopologySimulation {
         
         // Initialize the simulation
         this.init();
-    }    /**
+    }/**
      * Initialize all simulation components
      * Sets up DOM elements, event listeners, and initial network state
-     */
-    init() {
+     */    init() {
         this.setupElements();
         this.setupEventListeners();
         this.initializeDeviceStates();
+        this.initializeBandwidthTracking();
         this.drawConnections();
         this.updateConnectionStates();
         this.updateSpeedDisplay();
-        // this.updateNetworkStats();
+        this.updateNetworkMetrics();
         this.addLogEntry('Network topology initialized - All PCs online', 'success');
         this.startUptimeCounter();
-    }    /**
+        this.startMetricsUpdater();
+    }/**
      * Set up DOM element references
      * Establishes connections to all required HTML elements
      */
@@ -86,11 +101,21 @@ class StarTopologySimulation {
 
         // Hub interaction handler
         this.hub.addEventListener('click', () => this.handleHubClick());
-        
-        // Control panel button handlers
+          // Control panel button handlers
         document.getElementById('simulateTraffic').addEventListener('click', () => this.simulateNetworkTraffic());
+        document.getElementById('simulateHubFailure').addEventListener('click', () => this.simulateHubFailure());
+        document.getElementById('simulateCongestion').addEventListener('click', () => this.simulateNetworkCongestion());
         document.getElementById('resetNetwork').addEventListener('click', () => this.resetNetwork());
         document.getElementById('clearLog').addEventListener('click', () => this.clearLog());
+        
+        // Hub power button
+        const hubPowerButton = document.getElementById('hubPowerButton');
+        if (hubPowerButton) {
+            hubPowerButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleHubPower();
+            });
+        }
         
         // New export log functionality
         const exportLogBtn = document.getElementById('exportLog');
@@ -189,13 +214,20 @@ class StarTopologySimulation {
                 }
             }
         });
-    }handleDeviceClick(event) {
+    }    handleDeviceClick(event) {
         const clickedDevice = event.currentTarget;
         const deviceId = clickedDevice.dataset.device;
+        const macAddress = clickedDevice.dataset.mac;
+
+        // Check if hub is failed
+        if (this.hubState === 'failed') {
+            this.addLogEntry(`Cannot communicate - Hub is offline`, 'error');
+            return;
+        }
 
         // Check if device is online
         if (!this.isDeviceOnline(clickedDevice)) {
-            this.addLogEntry(`Cannot communicate with PC ${deviceId} - Device is offline`, 'error');
+            this.addLogEntry(`Cannot communicate with PC ${deviceId} [${macAddress}] - Device is offline`, 'error');
             return;
         }
 
@@ -204,7 +236,7 @@ class StarTopologySimulation {
             this.selectedDevice = clickedDevice;
             clickedDevice.classList.add('active');
             this.updateDeviceStatus(clickedDevice, 'Selected');
-            this.addLogEntry(`PC ${deviceId} selected as sender`, 'info');
+            this.addLogEntry(`PC ${deviceId} [${macAddress}] selected as sender`, 'info');
         } else if (this.selectedDevice === clickedDevice) {
             // Deselect the same device
             this.deselectDevice();
@@ -220,9 +252,11 @@ class StarTopologySimulation {
             const receiverDevice = clickedDevice;
             const senderId = this.selectedDevice.dataset.device;
             const receiverId = receiverDevice.dataset.device;
+            const senderMac = this.selectedDevice.dataset.mac;
+            const receiverMac = receiverDevice.dataset.mac;
             
             this.simulateDataTransmission(this.selectedDevice, receiverDevice);
-            this.addLogEntry(`Data transmission from PC ${senderId} to PC ${receiverId} initiated`, 'info');
+            this.addLogEntry(`Data transmission: ${senderMac} → ${receiverMac}`, 'info');
             this.deselectDevice();
         }
     }
@@ -248,49 +282,77 @@ class StarTopologySimulation {
             this.updateDeviceStatus(this.selectedDevice, this.isDeviceOnline(this.selectedDevice) ? 'Online' : 'Offline');
             this.selectedDevice = null;
         }
-    }
+    }    async simulateDataTransmission(sender, receiver) {
+        if (this.hubState === 'failed') {
+            this.addLogEntry('Transmission failed - Hub is offline', 'error');
+            return;
+        }
 
-    async simulateDataTransmission(sender, receiver) {
         const senderId = sender.dataset.device;
         const receiverId = receiver.dataset.device;
-          // Update device states
+        const senderMac = sender.dataset.mac;
+        const receiverMac = receiver.dataset.mac;
+
+        // Simulate bandwidth usage
+        this.updateBandwidthUsage(senderId, Math.random() * 60 + 40); // 40-100%
+        this.updateBandwidthUsage(receiverId, Math.random() * 40 + 20); // 20-60%
+
+        // Calculate latency based on network conditions
+        let transmissionLatency = this.metrics.latency;
+        if (this.networkCongested) {
+            transmissionLatency += Math.random() * 100 + 50; // Additional 50-150ms
+        }
+
+        // Update device states
         sender.classList.add('sending');
         receiver.classList.add('receiving');
         this.updateDeviceStatus(sender, 'Sending');
         this.updateDeviceStatus(receiver, 'Receiving');
         this.updateHubStatus('Processing');
 
+        // MAC address table lookup simulation
+        this.addLogEntry(`Hub: MAC table lookup for ${receiverMac}`, 'info');
+
         // Highlight connections
         const senderConnection = document.getElementById(`connection-${senderId}`);
         const receiverConnection = document.getElementById(`connection-${receiverId}`);
         
         if (senderConnection && receiverConnection) {
-            // Phase 1: Sender to Hub
+            // Phase 1: Sender to Hub with latency
             senderConnection.classList.add('active');
-            await this.createDataPacket(sender, this.hub, `PC${senderId}`);
+            await this.createDataPacket(sender, this.hub, `${senderMac}`, false, transmissionLatency);
             
-            // Phase 2: Hub processing
-            await this.delay(500 / this.animationSpeed);
+            // Phase 2: Hub processing with MAC learning
+            this.addLogEntry(`Hub: Frame from ${senderMac} on port ${senderId}`, 'info');
+            await this.delay(Math.max(500, transmissionLatency) / this.animationSpeed);
             
-            // Phase 3: Hub to Receiver
+            // Phase 3: Hub to Receiver with latency
             receiverConnection.classList.add('active');
-            await this.createDataPacket(this.hub, receiver, `PC${senderId}`);
+            this.addLogEntry(`Hub: Forwarding to ${receiverMac} on port ${receiverId}`, 'info');
+            await this.createDataPacket(this.hub, receiver, `${senderMac}`, false, transmissionLatency);
             
             // Cleanup
             setTimeout(() => {
-                senderConnection.classList.remove('active');                receiverConnection.classList.remove('active');
+                senderConnection.classList.remove('active');
+                receiverConnection.classList.remove('active');
                 sender.classList.remove('sending');
                 receiver.classList.remove('receiving');
                 this.updateDeviceStatus(sender, this.isDeviceOnline(sender) ? 'Online' : 'Offline');
                 this.updateDeviceStatus(receiver, this.isDeviceOnline(receiver) ? 'Online' : 'Offline');
                 this.updateHubStatus('Ready');
-                  // Update packet statistics and log
+
+                // Reset bandwidth usage gradually
+                setTimeout(() => {
+                    this.updateBandwidthUsage(senderId, 0);
+                    this.updateBandwidthUsage(receiverId, 0);
+                }, 2000);
+
+                // Update packet statistics and log
                 this.stats.totalPacketsSent++;
-                // this.updateNetworkStats();
-                this.addLogEntry(`Data successfully transmitted from PC ${senderId} to PC ${receiverId}`, 'success');
-            }, 1000 / this.animationSpeed);
+                this.addLogEntry(`Frame successfully delivered: ${senderMac} → ${receiverMac}`, 'success');
+            }, Math.max(1000, transmissionLatency) / this.animationSpeed);
         }
-    }    /**
+    }/**
      * Get the actual center position of an element relative to the network area
      */    getElementCenter(element) {
         // Use getBoundingClientRect for accurate positioning
@@ -302,12 +364,15 @@ class StarTopologySimulation {
         const centerY = rect.top + rect.height / 2 - networkRect.top;
         
         return { x: centerX, y: centerY };
-    }
-
-    async createDataPacket(fromElement, toElement, label) {
+    }    async createDataPacket(fromElement, toElement, label, isCollision = false, customLatency = null) {
         const packet = document.createElement('div');
         packet.className = 'data-packet moving';
         
+        // Add collision effect if this is a collision packet
+        if (isCollision) {
+            packet.classList.add('collision');
+        }
+
         // Get actual center positions using CSS-based calculation
         const startPos = this.getElementCenter(fromElement);
         const endPos = this.getElementCenter(toElement);
@@ -328,15 +393,35 @@ class StarTopologySimulation {
         // Force a reflow to ensure the packet is rendered at start position
         packet.offsetHeight;
         
+        // Calculate duration based on latency and network conditions
+        let baseDuration = Math.max(800, 1500 / this.animationSpeed);
+        
+        if (customLatency !== null) {
+            // Apply latency to duration
+            baseDuration += customLatency * 2; // Scale latency to visible duration
+        }
+        
+        if (this.networkCongested) {
+            baseDuration *= 1.5; // Slower during congestion
+            packet.classList.add('slow');
+        }
+
         // Set transition and animate to target position
-        const duration = Math.max(800, 1500 / this.animationSpeed);
-        packet.style.transition = `left ${duration}ms ease-in-out, top ${duration}ms ease-in-out, opacity 200ms ease-in-out`;
+        packet.style.transition = `left ${baseDuration}ms ease-in-out, top ${baseDuration}ms ease-in-out, opacity 200ms ease-in-out`;
         
         // Start animation after a small delay
         requestAnimationFrame(() => {
             packet.style.left = endX + 'px';
             packet.style.top = endY + 'px';
         });
+        
+        // Handle collision effects
+        if (isCollision) {
+            setTimeout(() => {
+                packet.style.backgroundColor = '#f39c12';
+                packet.style.transform = 'scale(1.5)';
+            }, baseDuration / 2);
+        }
         
         // Remove packet after animation completes
         setTimeout(() => {
@@ -348,9 +433,9 @@ class StarTopologySimulation {
                     }
                 }, 200);
             }
-        }, duration - 100);
+        }, baseDuration - 100);
         
-        return new Promise(resolve => setTimeout(resolve, duration));
+        return new Promise(resolve => setTimeout(resolve, baseDuration));
     }async simulateNetworkTraffic() {
         if (this.isSimulating) {
             this.addLogEntry('Network traffic simulation already in progress', 'error');
@@ -388,8 +473,7 @@ class StarTopologySimulation {
         this.setLoadingState(false);
         this.addLogEntry('Network traffic simulation completed', 'success');
     }
-    
-    /**
+      /**
      * Reset network to initial state
      * Clears all active transmissions while maintaining device power states
      * Includes validation and error handling
@@ -400,13 +484,27 @@ class StarTopologySimulation {
             this.isSimulating = false;
             this.setLoadingState(false);
             
-            // Clear all active device states
+            // Reset hub state
+            this.hubState = 'active';
+            this.hub.classList.remove('failed');
+            this.updateHubStatus('Ready');
+            this.updateHubHealth(100);
+            
+            // Clear network congestion
+            if (this.networkCongested) {
+                this.clearNetworkCongestion();
+            }
+            
+            // Reset all device states
             this.devices.forEach(device => {
-                if (device) { // Validate device exists
-                    device.classList.remove('active', 'sending', 'receiving');
-                    // Maintain current power state - don't reset offline devices
+                if (device) {
+                    device.classList.remove('active', 'sending', 'receiving', 'congested');
                     const status = this.isDeviceOnline(device) ? 'Online' : 'Offline';
                     this.updateDeviceStatus(device, status);
+                    
+                    // Reset bandwidth usage
+                    const deviceId = device.dataset.device;
+                    this.updateBandwidthUsage(deviceId, 0);
                 }
             });
 
@@ -414,17 +512,23 @@ class StarTopologySimulation {
             const connectionLines = document.querySelectorAll('.connection-line');
             connectionLines.forEach(line => {
                 if (line) {
-                    line.classList.remove('active');
+                    line.classList.remove('active', 'congested');
                 }
             });
+
+            // Reset connection states based on device status
+            this.updateConnectionStates();
 
             // Clear all data packets from display
             if (this.dataPacketsContainer) {
                 this.dataPacketsContainer.innerHTML = '';
             }
 
-            // Reset hub to ready state
-            this.updateHubStatus('Ready');
+            // Reset metrics
+            this.metrics.latency = 0;
+            this.metrics.collisionRate = 0;
+            this.metrics.totalBandwidth = 0;
+            this.metrics.packetsCollided = 0;
             
             // Clear active connections tracking
             this.activeConnections.clear();
@@ -435,16 +539,33 @@ class StarTopologySimulation {
                 this.selectedDevice = null;
             }
 
-            // Reset simulation controls
+            // Reset simulation control buttons
             const simulateButton = document.getElementById('simulateTraffic');
             if (simulateButton) {
                 simulateButton.innerHTML = '<span class="btn-icon">🚀</span>Simulate Network Traffic';
                 simulateButton.disabled = false;
                 simulateButton.classList.remove('loading');
             }
+
+            const hubFailureButton = document.getElementById('simulateHubFailure');
+            if (hubFailureButton) {
+                hubFailureButton.innerHTML = '<span class="btn-icon">⚠️</span>Simulate Hub Failure';
+                hubFailureButton.classList.remove('btn-success');
+                hubFailureButton.classList.add('btn-warning');
+            }
+
+            const congestionButton = document.getElementById('simulateCongestion');
+            if (congestionButton) {
+                congestionButton.innerHTML = '<span class="btn-icon">🚫</span>Create Network Congestion';
+                congestionButton.classList.remove('btn-success');
+                congestionButton.classList.add('btn-danger');
+            }
+            
+            // Update metrics display
+            this.updateNetworkMetrics();
             
             // Log the reset action
-            this.addLogEntry('Network reset completed - All transmissions cleared', 'info');
+            this.addLogEntry('Network reset completed - All systems restored to normal operation', 'info');
             
         } catch (error) {
             console.error('Network reset failed:', error);
@@ -635,6 +756,326 @@ class StarTopologySimulation {
      */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Initialize bandwidth tracking for all devices
+     */
+    initializeBandwidthTracking() {
+        this.devices.forEach(device => {
+            const deviceId = device.dataset.device;
+            this.bandwidthUsage[deviceId] = 0;
+        });
+    }
+
+    /**
+     * Simulate hub failure scenario
+     * Demonstrates single point of failure in star topology
+     */
+    async simulateHubFailure() {
+        if (this.hubState === 'failed') {
+            // Recover the hub
+            await this.recoverHub();
+            return;
+        }
+
+        this.hubState = 'failed';
+        this.hub.classList.add('failed');
+        this.updateHubStatus('FAILED');
+        this.updateHubHealth(0);
+        
+        // Update all connection lines to show failure
+        const connectionLines = document.querySelectorAll('.connection-line');
+        connectionLines.forEach(line => {
+            line.classList.add('offline');
+        });
+
+        // Log the failure with MAC addresses
+        this.addLogEntry('CRITICAL: Hub failure detected - All network communication stopped', 'error');
+        this.addLogEntry('MAC Address table cleared - All device entries lost', 'error');
+        
+        // Update button text
+        const button = document.getElementById('simulateHubFailure');
+        button.innerHTML = '<span class="btn-icon">🔧</span>Recover Hub';
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-success');
+
+        // Show impact on all devices
+        this.devices.forEach(device => {
+            if (this.isDeviceOnline(device)) {
+                device.classList.add('congested');
+                const deviceId = device.dataset.device;
+                const macAddress = device.dataset.mac;
+                this.addLogEntry(`PC ${deviceId} [${macAddress}] cannot reach network - Hub unreachable`, 'error');
+            }
+        });
+
+        this.updateNetworkMetrics();
+    }
+
+    /**
+     * Recover hub from failure state
+     */
+    async recoverHub() {
+        this.addLogEntry('Initiating hub recovery procedure...', 'info');
+        
+        // Gradual recovery process
+        for (let health = 0; health <= 100; health += 10) {
+            this.updateHubHealth(health);
+            await this.delay(200);
+        }
+
+        this.hubState = 'active';
+        this.hub.classList.remove('failed');
+        this.updateHubStatus('Ready');
+        
+        // Restore connection lines
+        this.updateConnectionStates();
+        
+        // Remove congestion from devices
+        this.devices.forEach(device => {
+            device.classList.remove('congested');
+        });
+
+        // Update button
+        const button = document.getElementById('simulateHubFailure');
+        button.innerHTML = '<span class="btn-icon">⚠️</span>Simulate Hub Failure';
+        button.classList.remove('btn-success');
+        button.classList.add('btn-warning');
+
+        // Rebuild MAC address table
+        this.addLogEntry('Hub recovery complete - Rebuilding MAC address table...', 'success');
+        this.devices.forEach(device => {
+            if (this.isDeviceOnline(device)) {
+                const deviceId = device.dataset.device;
+                const macAddress = device.dataset.mac;
+                this.addLogEntry(`MAC learned: Port ${deviceId} -> ${macAddress}`, 'info');
+            }
+        });
+
+        this.updateNetworkMetrics();
+    }
+
+    /**
+     * Simulate network congestion
+     * Shows collision detection and bandwidth management
+     */
+    async simulateNetworkCongestion() {
+        if (this.networkCongested) {
+            this.clearNetworkCongestion();
+            return;
+        }
+
+        if (this.hubState === 'failed') {
+            this.addLogEntry('Cannot simulate congestion - Hub is failed', 'error');
+            return;
+        }
+
+        this.networkCongested = true;
+        this.addLogEntry('Simulating network congestion - High traffic load detected', 'warning');
+
+        // Update button
+        const button = document.getElementById('simulateCongestion');
+        button.innerHTML = '<span class="btn-icon">✅</span>Clear Congestion';
+        button.classList.remove('btn-danger');
+        button.classList.add('btn-success');
+
+        // Increase latency and collision rate
+        this.metrics.latency = Math.random() * 200 + 100; // 100-300ms
+        this.metrics.collisionRate = Math.random() * 15 + 5; // 5-20%
+
+        // Apply congestion effects to online devices
+        const onlineDevices = this.devices.filter(device => this.isDeviceOnline(device));
+        onlineDevices.forEach(device => {
+            device.classList.add('congested');
+            const deviceId = device.dataset.device;
+            this.updateBandwidthUsage(deviceId, Math.random() * 80 + 20); // 20-100%
+        });
+
+        // Show connection congestion
+        const connectionLines = document.querySelectorAll('.connection-line:not(.offline)');
+        connectionLines.forEach(line => {
+            line.classList.add('congested');
+        });
+
+        // Simulate some packet collisions
+        await this.simulatePacketCollisions();
+        
+        this.updateNetworkMetrics();
+    }
+
+    /**
+     * Clear network congestion
+     */
+    clearNetworkCongestion() {
+        this.networkCongested = false;
+        this.addLogEntry('Network congestion cleared - Normal operation restored', 'success');
+
+        // Reset metrics
+        this.metrics.latency = Math.random() * 20; // 0-20ms normal
+        this.metrics.collisionRate = 0;
+
+        // Remove congestion effects
+        this.devices.forEach(device => {
+            device.classList.remove('congested');
+            const deviceId = device.dataset.device;
+            this.updateBandwidthUsage(deviceId, 0);
+        });
+
+        // Clear connection congestion
+        const connectionLines = document.querySelectorAll('.connection-line');
+        connectionLines.forEach(line => {
+            line.classList.remove('congested');
+        });
+
+        // Update button
+        const button = document.getElementById('simulateCongestion');
+        button.innerHTML = '<span class="btn-icon">🚫</span>Create Network Congestion';
+        button.classList.remove('btn-success');
+        button.classList.add('btn-danger');
+
+        this.updateNetworkMetrics();
+    }
+
+    /**
+     * Simulate packet collisions for educational purposes
+     */
+    async simulatePacketCollisions() {
+        const onlineDevices = this.devices.filter(device => this.isDeviceOnline(device));
+        if (onlineDevices.length < 2) return;
+
+        for (let i = 0; i < 3; i++) {
+            // Create two packets that will "collide" at the hub
+            const device1 = onlineDevices[Math.floor(Math.random() * onlineDevices.length)];
+            const device2 = onlineDevices[Math.floor(Math.random() * onlineDevices.length)];
+
+            if (device1 !== device2) {
+                // Create packets simultaneously
+                const packet1Promise = this.createDataPacket(device1, this.hub, 'COLLISION', true);
+                const packet2Promise = this.createDataPacket(device2, this.hub, 'COLLISION', true);
+
+                await Promise.all([packet1Promise, packet2Promise]);
+
+                // Log collision detection
+                const mac1 = device1.dataset.mac;
+                const mac2 = device2.dataset.mac;
+                this.addLogEntry(`Collision detected: ${mac1} and ${mac2} transmitted simultaneously`, 'error');
+                this.metrics.packetsCollided += 2;
+
+                await this.delay(500);
+            }
+        }
+    }
+
+    /**
+     * Toggle hub power state
+     */
+    toggleHubPower() {
+        if (this.hubState === 'active') {
+            this.simulateHubFailure();
+        } else if (this.hubState === 'failed') {
+            this.recoverHub();
+        }
+    }
+
+    /**
+     * Update hub health display
+     */
+    updateHubHealth(healthPercent) {
+        this.hubHealth = healthPercent;
+        const hubHealthElement = document.getElementById('hubHealth');
+        if (hubHealthElement) {
+            hubHealthElement.textContent = `${healthPercent}%`;
+            
+            // Color coding based on health
+            if (healthPercent <= 25) {
+                hubHealthElement.style.color = '#e74c3c';
+            } else if (healthPercent <= 50) {
+                hubHealthElement.style.color = '#f39c12';
+            } else {
+                hubHealthElement.style.color = '#e0f0ff';
+            }
+        }
+    }
+
+    /**
+     * Update bandwidth usage for a device
+     */
+    updateBandwidthUsage(deviceId, percentage) {
+        this.bandwidthUsage[deviceId] = percentage;
+        const bandwidthBar = document.getElementById(`bandwidthBar${deviceId}`);
+        if (bandwidthBar) {
+            bandwidthBar.style.width = `${percentage}%`;
+        }
+        
+        // Update total bandwidth metric
+        const totalBandwidth = Object.values(this.bandwidthUsage).reduce((sum, usage) => sum + usage, 0) / this.devices.length;
+        this.metrics.totalBandwidth = totalBandwidth;
+    }
+
+    /**
+     * Update network performance metrics display
+     */
+    updateNetworkMetrics() {
+        // Hub status
+        const hubStatusElement = document.getElementById('hubStatusMetric');
+        if (hubStatusElement) {
+            const status = this.hubState === 'active' ? 'Active' : 'Failed';
+            hubStatusElement.textContent = status;
+            hubStatusElement.className = `metric-value status-${this.hubState === 'active' ? 'active' : 'failed'}`;
+        }
+
+        // Network latency
+        const latencyElement = document.getElementById('networkLatency');
+        if (latencyElement) {
+            latencyElement.textContent = `${Math.round(this.metrics.latency)}ms`;
+            if (this.metrics.latency > 100) {
+                latencyElement.className = 'metric-value status-warning';
+            } else {
+                latencyElement.className = 'metric-value status-active';
+            }
+        }
+
+        // Collision rate
+        const collisionElement = document.getElementById('collisionRate');
+        if (collisionElement) {
+            collisionElement.textContent = `${Math.round(this.metrics.collisionRate)}%`;
+            if (this.metrics.collisionRate > 5) {
+                collisionElement.className = 'metric-value status-warning';
+            } else {
+                collisionElement.className = 'metric-value status-active';
+            }
+        }
+
+        // Total bandwidth
+        const bandwidthElement = document.getElementById('totalBandwidth');
+        if (bandwidthElement) {
+            bandwidthElement.textContent = `${Math.round(this.metrics.totalBandwidth)}%`;
+            if (this.metrics.totalBandwidth > 70) {
+                bandwidthElement.className = 'metric-value status-warning';
+            } else {
+                bandwidthElement.className = 'metric-value status-active';
+            }
+        }
+    }
+
+    /**
+     * Start the metrics updater for real-time network monitoring
+     */
+    startMetricsUpdater() {
+        setInterval(() => {
+            // Simulate natural latency fluctuation
+            if (!this.networkCongested && this.hubState === 'active') {
+                this.metrics.latency = Math.random() * 20; // 0-20ms normal operation
+            }
+            
+            // Update collision rate based on network activity
+            if (!this.networkCongested) {
+                this.metrics.collisionRate = Math.random() * 2; // 0-2% normal
+            }
+            
+            this.updateNetworkMetrics();
+        }, 1000);
     }
 }
 
