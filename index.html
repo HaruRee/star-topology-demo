@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Topology Network Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>    <div class="container">
+        <header>            <div class="header-content">
+                <h1>Star Network Topology Simulation</h1>
+                <p class="header-description">
+                    Interactive network simulation demonstrating star topology architecture
+                </p>        </header>
+
+        <div class="main-content">
+            <div class="network-area">
+                <!-- Central Hub -->
+                <div class="hub" id="hub">
+                    <div class="hub-icon">🌟</div>
+                    <div class="hub-label">Central Hub</div>
+                    <div class="hub-status" id="hubStatus">Ready</div>
+                </div>
+
+                <!-- Network Devices - All PCs -->
+                <div class="device device-1" id="device1" data-device="1">
+                    <div class="device-icon">💻</div>
+                    <div class="device-label">PC 1</div>
+                    <div class="device-status">Online</div>
+                    <div class="power-button" title="Click to turn on/off">⚡</div>
+                </div>
+
+                <div class="device device-2" id="device2" data-device="2">
+                    <div class="device-icon">🖥️</div>
+                    <div class="device-label">PC 2</div>
+                    <div class="device-status">Online</div>
+                    <div class="power-button" title="Click to turn on/off">⚡</div>
+                </div>
+
+                <div class="device device-3" id="device3" data-device="3">
+                    <div class="device-icon">💻</div>
+                    <div class="device-label">PC 3</div>
+                    <div class="device-status">Online</div>
+                    <div class="power-button" title="Click to turn on/off">⚡</div>
+                </div>
+
+                <div class="device device-4" id="device4" data-device="4">
+                    <div class="device-icon">🖥️</div>
+                    <div class="device-label">PC 4</div>
+                    <div class="device-status">Online</div>
+                    <div class="power-button" title="Click to turn on/off">⚡</div>
+                </div>
+
+                <div class="device device-5" id="device5" data-device="5">
+                    <div class="device-icon">💻</div>
+                    <div class="device-label">PC 5</div>
+                    <div class="device-status">Online</div>
+                    <div class="power-button" title="Click to turn on/off">⚡</div>
+                </div>
+
+                <div class="device device-6" id="device6" data-device="6">
+                    <div class="device-icon">🖥️</div>
+                    <div class="device-label">PC 6</div>
+                    <div class="device-status">Online</div>
+                    <div class="power-button" title="Click to turn on/off">⚡</div>
+                </div>
+
+                <!-- Connection Lines -->
+                <svg class="connections" id="connections">
+                    <!-- Lines will be drawn dynamically -->
+                </svg>
+
+                <!-- Data Packets -->
+                <div class="data-packets" id="dataPackets"></div>
+            </div>            <div class="controls">
+                <div class="control-panel">
+                    <h3>
+                        <span class="panel-icon">⚙️</span>
+                        Network Controls
+                    </h3>
+                    <div class="instructions">
+                        <p>Click any PC to send data. Use power buttons to control device state.</p>
+                    </div>
+                    <div class="buttons">
+                        <button id="simulateTraffic" class="btn btn-primary">
+                            <span class="btn-icon">🚀</span>
+                            Simulate Network Traffic
+                        </button>
+                        <button id="resetNetwork" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span>
+                            Reset Network
+                        </button>
+                    </div>
+                    <div class="speed-control">
+                        <label for="speedSlider">
+                            <span class="control-icon">⚡</span>
+                            Animation Speed:
+                        </label>
+                        <div class="speed-slider-container">
+                            <input type="range" id="speedSlider" min="1" max="5" value="3" step="1">
+                            <span id="speedValue" class="speed-indicator">Normal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="log-panel">
+                    <h3>
+                        <span class="panel-icon">📊</span>
+                        Network Activity Log
+                    </h3>
+                    <div class="log-content" id="logContent">
+                        <div class="log-entry log-success">
+                            <span class="log-time">00:00:00</span>
+                            Network initialized - All PCs connected to hub
+                        </div>
+                    </div>
+                    <div class="log-actions">
+                        <button id="clearLog" class="btn btn-small">
+                            <span class="btn-icon">🗑️</span>
+                            Clear Log
+                        </button>
+                        <button id="exportLog" class="btn btn-small">
+                            <span class="btn-icon">💾</span>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
